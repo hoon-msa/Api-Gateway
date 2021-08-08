@@ -22,23 +22,48 @@ spring:
             postLogger: true
 
       routes:
+#        - id: user-service
+#          # uri: http://localhost:8081/
+#          uri: lb://USER-SERVICE  # 유레카 서버로 전송하겠다.
+#          predicates:
+#            - Path=/user-service/**      # 위의 uri로 이동한다.
+
         - id: user-service
-          # uri: http://localhost:8081/
           uri: lb://USER-SERVICE  # 유레카 서버로 전송하겠다.
           predicates:
-            - Path=/user-service/**      # 위의 uri로 이동한다.
+            - Path=/user-service/login      # 위의 uri로 이동한다.
+            - Method=POST
+          filters:
+            - RemoveRequestHeader=Cookie #
+            - RewritePath=/user-service/(?<segment>.*), /$\{segment}  # 이러한 패턴으로 들어오는 데이터는 뒤쪽에 있는 형태로 바꾼다.
+
+        - id: user-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/user-service/users
+            - Method=POST
+          filters:
+            - RemoveRequestHeader=Cookie #
+            - RewritePath=/user-service/(?<segment>.*), /$\{segment}
+        # 회원 서비스 기타 요청
+        - id: user-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/user-service/**
+            - Method=POST
+          filters:
+            - RemoveRequestHeader=Cookie #
+            - RewritePath=/user-service/(?<segment>.*), /$\{segment}
+
         - id: catalog-service
-          # uri: http://localhost:8081/
           uri: lb://CATALOG-SERVICE  # 유레카 서버로 전송하겠다.
           predicates:
             - Path=/catalog-service/**      # 위의 uri로 이동한다.
         - id: order-service
-          # uri: http://localhost:8081/
           uri: lb://ORDER-SERVICE  # 유레카 서버로 전송하겠다.
           predicates:
             - Path=/order-service/**      # 위의 uri로 이동한다.
         - id: first-service
-          # uri: http://localhost:8081/
           uri: lb://MY-FIRST-SERVICE  # 유레카 서버로 전송하겠다.
           predicates:
             - Path=/first-service/**      # 위의 uri로 이동한다.
