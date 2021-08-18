@@ -11,6 +11,13 @@ eureka:
 spring:
   application:
     name: apigateway-service
+
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: guest
+    password: guest
+
   cloud:
     gateway:
 
@@ -20,6 +27,8 @@ spring:
             baseMessage: Spring Cloud Gateway GlobalFilter
             preLogger: true
             postLogger: true
+
+
 
       routes:
 #        - id: user-service
@@ -45,15 +54,37 @@ spring:
           filters:
             - RemoveRequestHeader=Cookie #
             - RewritePath=/user-service/(?<segment>.*), /$\{segment}
+
+        - id: user-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/user-service/welcome  # welcome만 빼고 싶으면 이렇게하면 됨
+            - Method=GET
+          filters:
+            - RemoveRequestHeader=Cookie
+            - RewritePath=/user-service/(?<segment>.*), /$\{segment}
+
+        - id: user-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/user-service/actuator/**
+            - Method=GET,POST
+          filters:
+            - RemoveRequestHeader=Cookie
+            - RewritePath=/user-service/(?<segment>.*), /$\{segment}
+
         # 회원 서비스 기타 요청
         - id: user-service
           uri: lb://USER-SERVICE
           predicates:
             - Path=/user-service/**
-            - Method=POST
+            - Method=GET
           filters:
-            - RemoveRequestHeader=Cookie #
+            - RemoveRequestHeader=Cookie
             - RewritePath=/user-service/(?<segment>.*), /$\{segment}
+            - AuthorizationHeaderFilter
+
+
 
         - id: catalog-service
           uri: lb://CATALOG-SERVICE  # 유레카 서버로 전송하겠다.
@@ -86,3 +117,11 @@ spring:
                 preLogger: true
                 postLogger: true
 
+#token:
+#  secret: user_token          # 토큰 만들 때 사용할 꺼임. 아무값이나 넣어도됨
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh, health, beans, httptrace, busrefresh # HttpTraceRepository를 등록해야 httptrace 사용 가능
